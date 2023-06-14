@@ -1,8 +1,7 @@
 const Book = require("../models/book.model");
-const fs = require('fs');
+
 const config = require("../config");
 
-let inMemoryBooks = [];
 exports.create_book = (req, res) => {
     if (config.database.inMemory) {
         const newBook = { title, author, publicationYear };
@@ -26,67 +25,42 @@ exports.create_book = (req, res) => {
     }
 };
 
-// Load books from a JSON file
-// const loadBooksFromFile = () => {
-//   fs.readFile('books.json', 'utf8', (err, data) => {
-//     if (err) {
-//       console.error('Error loading books from file:', err);
-//     } else {
-//       inMemoryBooks = JSON.parse(data);
-//       console.log('Books loaded from file');
-//     }
-//   });
-// };
-// Save books to a JSON file
-// const saveBooksToFile = () => {
-//   fs.writeFile('books.json', JSON.stringify(inMemoryBooks), (err) => {
-//     if (err) {
-//       console.error('Error saving books to file:', err);
-//     } else {
-//       console.log('Books saved to file');
-//     }
-//   });
-// };
-if (config.database.inMemory) {
-    //  loadBooksFromFile();
 
-    // Save books to file when the application is closed
-    process.on('exit', () => {
-        //saveBooksToFile();
-    });
-}
 
 exports.id_book = async(req, res) => {
     //req.params contains all direct parameters from the URL
-   // console.log(req.params.id);
-
+   
     try {
-        await Book.findOne({ _id: req.params.id })
-        .then(book => {
-            res.status(200).json({ book })
-        })
-        .catch(error => {
-            res.status(404).json({ error })
-        });
-    } catch(err){
-        res.status(500).json({ error: 'Failed to retrieve book' });
+      const book = await Book.findOne({ _id: req.params.id });
+
+      if (!book) {
+        return res.status(404).json({ error: "Book not found" });
+      }
+
+      res.json(book);
+    } catch (error) {
+      console.error("Error fetching book:", error);
+      res.status(500).json({ error: "Server error" });
     }
 
 };
 
 exports.update_book = async(req, res) => {
-    //single book update by id
+    
+    try {
+      const updatedBook = await Book.updateOne(
+        { _id: req.params.id },
+        { $set: req.body }
+      );
 
-     try {
-        await Book.updateOne({ _id: req.params.id }, { $set: req.body })
-        .then(book => {
-            res.status(200).json({ book })
-        })
-        .catch(error => {
-            res.status(404).json({ error })
-        });
-    } catch(err){
-        res.status(500).json({ error: 'Failed to retrieve book' });
+      if (updatedBook.nModified === 0) {
+        return res.status(404).json({ error: "Book not found" });
+      }
+
+      res.json({ message: "Book updated successfully" });
+    } catch (error) {
+      console.error("Error updating book:", error);
+      res.status(500).json({ error: "Server error" });
     }
 
  
